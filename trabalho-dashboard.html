@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard - Mercado de Trabalho Brasil</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f0f0f0;
+      color: #333;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      background-color: #2c5f9e;
+      color: white;
+      padding: 16px 24px;
+    }
+
+    header h1 {
+      font-size: 20px;
+      margin: 0 0 4px 0;
+    }
+
+    header p {
+      font-size: 13px;
+      margin: 0;
+      opacity: 0.85;
+    }
+
+    main {
+      max-width: 1000px;
+      margin: 24px auto;
+      padding: 0 16px;
+    }
+
+    /* KPI */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .kpi-card {
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      padding: 16px;
+      text-align: center;
+    }
+
+    .kpi-card .valor {
+      font-size: 28px;
+      font-weight: bold;
+      color: #2c5f9e;
+    }
+
+    .kpi-card .label {
+      font-size: 13px;
+      color: #555;
+      margin-top: 4px;
+    }
+
+    /* TABS */
+    .tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .tab-btn {
+      padding: 8px 18px;
+      border: 1px solid #aaa;
+      background: white;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .tab-btn.ativo {
+      background: #2c5f9e;
+      color: white;
+      border-color: #2c5f9e;
+    }
+
+    /* SECTIONS */
+    .aba { display: none; }
+    .aba.ativo { display: block; }
+
+    /* CARDS */
+    .linha {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .linha.unico {
+      grid-template-columns: 1fr;
+    }
+
+    .card {
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      padding: 16px;
+    }
+
+    .card h3 {
+      font-size: 13px;
+      color: #444;
+      margin: 0 0 12px 0;
+      text-transform: uppercase;
+    }
+
+    .grafico {
+      position: relative;
+      height: 230px;
+    }
+
+    /* TABELA */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th {
+      background: #e8eef7;
+      padding: 8px;
+      text-align: left;
+      border: 1px solid #ccc;
+    }
+
+    td {
+      padding: 7px 8px;
+      border: 1px solid #ddd;
+    }
+
+    tr:nth-child(even) td {
+      background: #f9f9f9;
+    }
+
+    footer {
+      text-align: center;
+      font-size: 12px;
+      color: #777;
+      padding: 20px;
+      margin-top: 32px;
+      border-top: 1px solid #ddd;
+    }
+
+    footer a { color: #2c5f9e; }
+
+    /* ANOTAÇÕES */
+    .anot-form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    .anot-form input,
+    .anot-form textarea {
+      padding: 10px 12px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 14px;
+      font-family: Arial, sans-serif;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .anot-form textarea {
+      resize: vertical;
+      min-height: 90px;
+    }
+
+    .anot-form-btns {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-salvar {
+      background: #2c5f9e;
+      color: white;
+      border: none;
+      padding: 9px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .btn-salvar:hover { background: #1e4a7a; }
+
+    .btn-cancelar {
+      background: #ccc;
+      color: #333;
+      border: none;
+      padding: 9px 16px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+      display: none;
+    }
+
+    .btn-cancelar:hover { background: #bbb; }
+
+    .anot-lista {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .anot-item {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 14px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .anot-item-conteudo { flex: 1; }
+
+    .anot-item-titulo {
+      font-weight: bold;
+      font-size: 14px;
+      color: #2c5f9e;
+      margin-bottom: 4px;
+    }
+
+    .anot-item-texto {
+      font-size: 13px;
+      color: #444;
+      white-space: pre-wrap;
+    }
+
+    .anot-item-acoes {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .btn-editar, .btn-deletar {
+      border: none;
+      padding: 5px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    .btn-editar  { background: #e8eef7; color: #2c5f9e; }
+    .btn-editar:hover  { background: #d0ddf0; }
+    .btn-deletar { background: #fde8e8; color: #c0392b; }
+    .btn-deletar:hover { background: #f5c6c6; }
+
+    .anot-vazio {
+      text-align: center;
+      color: #999;
+      font-size: 14px;
+      padding: 32px 0;
+    }
+
+    .anot-status {
+      font-size: 13px;
+      margin-bottom: 10px;
+      min-height: 18px;
+      color: #2e8b57;
+    }
+
+    @media (max-width: 600px) {
+      .kpi-grid { grid-template-columns: 1fr 1fr; }
+      .linha { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Dashboard — Mercado de Trabalho Brasileiro</h1>
+  <p>Fonte: Relatório de Acompanhamento Fiscal — IFI / Senado Federal, Novembro 2025 · IBGE / PNAD Contínua</p>
+</header>
+
+<main>
+
+  <!-- KPIs -->
+  <div class="kpi-grid" style="margin-top: 20px;">
+    <div class="kpi-card">
+      <div class="valor">174,1M</div>
+      <div class="label">População em Idade Ativa (14+ anos)</div>
+    </div>
+    <div class="kpi-card">
+      <div class="valor">102,3M</div>
+      <div class="label">Pessoas Ocupadas</div>
+    </div>
+    <div class="kpi-card">
+      <div class="valor">~6%</div>
+      <div class="label">Taxa de Desemprego (2025)</div>
+    </div>
+    <div class="kpi-card">
+      <div class="valor">63,6M</div>
+      <div class="label">Emprego Formal</div>
+    </div>
+    <div class="kpi-card">
+      <div class="valor">38,7M</div>
+      <div class="label">Emprego Informal</div>
+    </div>
+    <div class="kpi-card">
+      <div class="valor">65,5M</div>
+      <div class="label">Fora da Força de Trabalho</div>
+    </div>
+  </div>
+
+  <!-- ABAS -->
+  <div class="tabs">
+    <button class="tab-btn ativo" onclick="trocarAba(event, 'visao')">Visão Geral</button>
+    <button class="tab-btn" onclick="trocarAba(event, 'desemprego')">Desemprego</button>
+    <button class="tab-btn" onclick="trocarAba(event, 'inatividade')">Inatividade</button>
+    <button class="tab-btn" onclick="trocarAba(event, 'bolsa')">Bolsa Família</button>
+    <button class="tab-btn" onclick="trocarAba(event, 'anotacoes')">📝 Anotações</button>
+  </div>
+
+  <!-- ABA 1: VISÃO GERAL -->
+  <div id="visao" class="aba ativo">
+    <div class="linha">
+      <div class="card">
+        <h3>Emprego Formal vs Informal (Milhões)</h3>
+        <div class="grafico"><canvas id="cFormalInformal"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>Taxa de Participação por Período (%)</h3>
+        <div class="grafico"><canvas id="cParticipacao"></canvas></div>
+      </div>
+    </div>
+    <div class="linha unico">
+      <div class="card">
+        <h3>Desemprego, Ocupação e Participação — Médias Históricas (%)</h3>
+        <div class="grafico"><canvas id="cOcupacao"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ABA 2: DESEMPREGO -->
+  <div id="desemprego" class="aba">
+    <div class="linha unico">
+      <div class="card">
+        <h3>Taxa de Desemprego — Série Histórica (%)</h3>
+        <div class="grafico"><canvas id="cDesemprego"></canvas></div>
+      </div>
+    </div>
+    <div class="linha">
+      <div class="card">
+        <h3>Comparativo de Indicadores — 3 Períodos</h3>
+        <div class="grafico"><canvas id="cRadar"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>Desocupados por Tempo de Desemprego (Milhões)</h3>
+        <div class="grafico"><canvas id="cRosca"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ABA 3: INATIVIDADE -->
+  <div id="inatividade" class="aba">
+    <div class="linha">
+      <div class="card">
+        <h3>Motivos de Inatividade — Milhões de Pessoas</h3>
+        <div class="grafico"><canvas id="cMotivos"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>Composição da Inatividade por Motivo (%)</h3>
+        <div class="grafico"><canvas id="cMotivosPct"></canvas></div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom: 16px;">
+      <h3>Inatividade por Faixa Etária e Motivo — Média 2022–2025 (Milhões)</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Faixa Etária</th>
+            <th>Cuidados</th>
+            <th>Estudo</th>
+            <th>Saúde</th>
+            <th>Idade</th>
+            <th>Opção Pessoal</th>
+            <th>Outros</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>14+ anos</td><td>1,4</td><td>9,2</td><td>0,8</td><td>1,8</td><td>0,7</td><td>0,4</td></tr>
+          <tr><td>25–59 anos</td><td>9,2</td><td>0,7</td><td>5,6</td><td>1,0</td><td>1,9</td><td>1,1</td></tr>
+          <tr><td>60+ anos</td><td>2,0</td><td>0,0</td><td>4,4</td><td>12,8</td><td>3,4</td><td>1,9</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ABA 4: BOLSA FAMÍLIA -->
+  <div id="bolsa" class="aba">
+    <div class="linha">
+      <div class="card">
+        <h3>Famílias Beneficiárias do Bolsa Família (Milhões)</h3>
+        <div class="grafico"><canvas id="cBolsaFamilias"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>Valor Médio do Benefício (R$)</h3>
+        <div class="grafico"><canvas id="cBolsaValor"></canvas></div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom: 16px;">
+      <h3>O que dizem os estudos sobre o Bolsa Família e o trabalho</h3>
+      <table>
+        <thead>
+          <tr><th>Estudo</th><th>Conclusão principal</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>BCB – Rel. Inflação (2024)</td><td>Cerca de 50% da queda na participação é explicada pelo envelhecimento da população</td></tr>
+          <tr><td>Duque / IBRE-FGV (2024)</td><td>BF reduziu a oferta de trabalho entre jovens, mulheres e pessoas de baixa escolaridade</td></tr>
+          <tr><td>Pires e Silva / BCB (2024)</td><td>BF contribuiu para a queda da participação entre grupos de menor renda</td></tr>
+          <tr><td>Vale e Soares / Ipea (2025)</td><td>Beneficiários saíram de empregos precários ("fuga da precariedade"), efeito pequeno</td></tr>
+          <tr><td>Hecksher / IPCid-Ipea (2025)</td><td>Transferências de renda em geral não reduzem significativamente a oferta de trabalho adulta</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ABA 5: ANOTAÇÕES -->
+  <div id="anotacoes" class="aba">
+    <div class="card" style="margin-bottom: 20px;">
+      <h3 id="anot-form-titulo-label">Nova Anotação</h3>
+      <div class="anot-form">
+        <input type="hidden" id="anot-id" />
+        <input type="text" id="anot-titulo" placeholder="Título da anotação..." maxlength="100" />
+        <textarea id="anot-texto" placeholder="Escreva sua anotação aqui..."></textarea>
+        <div class="anot-status" id="anot-status"></div>
+        <div class="anot-form-btns">
+          <button class="btn-salvar" onclick="salvarAnotacao()">💾 Salvar</button>
+          <button class="btn-cancelar" id="btn-cancelar-edicao" onclick="cancelarEdicao()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Anotações Salvas</h3>
+      <div class="anot-lista" id="anot-lista">
+        <div class="anot-vazio" id="anot-carregando">Carregando anotações...</div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  Fonte: <a href="https://www12.senado.leg.br/ifi/publicacoes1/relatorio/2025/novembro/relatorio-de-acompanhamento-fiscal-nov-2025" target="_blank">IFI – Relatório de Acompanhamento Fiscal, Novembro 2025</a> · IBGE / PNAD Contínua
+</footer>
+
+<script>
+  const AZUL    = '#2c5f9e';
+  const LARANJA = '#e07b2a';
+  const VERDE   = '#2e8b57';
+  const VERMELHO= '#c0392b';
+
+  const eixo = {
+    grid: { color: '#e0e0e0' },
+    ticks: { color: '#555' }
+  };
+
+  function trocarAba(e, id) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('ativo'));
+    document.querySelectorAll('.aba').forEach(a => a.classList.remove('ativo'));
+    e.currentTarget.classList.add('ativo');
+    document.getElementById(id).classList.add('ativo');
+  }
+
+  // 1. Formal vs Informal
+  new Chart(document.getElementById('cFormalInformal'), {
+    type: 'bar',
+    data: {
+      labels: ['Formal', 'Informal'],
+      datasets: [{ data: [63.6, 38.7], backgroundColor: [AZUL, LARANJA] }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: eixo, y: { ...eixo, beginAtZero: true, ticks: { callback: v => v + 'M' } } }
+    }
+  });
+
+  // 2. Taxa de participação por período
+  new Chart(document.getElementById('cParticipacao'), {
+    type: 'bar',
+    data: {
+      labels: ['2012–2019', '2020–2021', '2022–2025'],
+      datasets: [{ data: [62.8, 60.1, 62.1], backgroundColor: [AZUL, VERMELHO, VERDE] }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: eixo, y: { ...eixo, min: 56, max: 66, ticks: { callback: v => v + '%' } } }
+    }
+  });
+
+  // 3. Grouped bar — 3 indicadores
+  new Chart(document.getElementById('cOcupacao'), {
+    type: 'bar',
+    data: {
+      labels: ['2012–2019', '2020–2021', '2022–2025'],
+      datasets: [
+        { label: 'Nível de Ocupação (%)',    data: [56.6, 52.0, 57.3], backgroundColor: AZUL },
+        { label: 'Taxa de Participação (%)', data: [62.8, 60.1, 62.1], backgroundColor: VERDE },
+        { label: 'Taxa de Desemprego (%)',   data: [9.9,  13.5,  7.8], backgroundColor: LARANJA },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: { x: eixo, y: { ...eixo, beginAtZero: true, ticks: { callback: v => v + '%' } } }
+    }
+  });
+
+  // 4. Série histórica desemprego
+  new Chart(document.getElementById('cDesemprego'), {
+    type: 'line',
+    data: {
+      labels: ['mar/12','set/12','mar/13','set/13','mar/14','set/14','mar/15','set/15','mar/16','set/16','mar/17','set/17','mar/18','set/18','mar/19','set/19','mar/20','set/20','mar/21','set/21','mar/22','set/22','mar/23','set/23','mar/24','set/24','mar/25'],
+      datasets: [{
+        label: 'Desemprego (%)',
+        data: [7.9,7.5,7.4,7.2,7.1,6.8,8.0,9.0,10.9,11.8,13.0,12.4,12.7,12.1,12.7,11.8,13.3,14.6,14.7,13.5,11.1,8.7,8.8,7.7,7.9,6.2,6.1],
+        borderColor: AZUL, backgroundColor: 'rgba(44,95,158,0.1)', fill: true, tension: 0.4, pointRadius: 2
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { ...eixo, ticks: { maxTicksLimit: 9 } }, y: { ...eixo, ticks: { callback: v => v + '%' } } }
+    }
+  });
+
+  // 5. Radar
+  new Chart(document.getElementById('cRadar'), {
+    type: 'radar',
+    data: {
+      labels: ['Nível de Ocup.', 'Taxa de Part.', 'Emp. Formal', 'Emp. Informal'],
+      datasets: [
+        { label: '2012–2019', data: [56.6,62.8,50,50], borderColor: AZUL,    backgroundColor: 'rgba(44,95,158,.15)' },
+        { label: '2020–2021', data: [52.0,60.1,44,50], borderColor: VERMELHO, backgroundColor: 'rgba(192,57,43,.15)' },
+        { label: '2022–2025', data: [57.3,62.1,59,36], borderColor: VERDE,   backgroundColor: 'rgba(46,139,87,.15)' },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: { r: { grid: { color: '#ddd' }, pointLabels: { color: '#555', font: { size: 10 } }, ticks: { display: false } } }
+    }
+  });
+
+  // 6. Rosca desocupados
+  new Chart(document.getElementById('cRosca'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Menos de 1 ano', '1 a 2 anos', 'Mais de 2 anos'],
+      datasets: [{ data: [4.3, 0.7, 1.3], backgroundColor: [AZUL, LARANJA, VERMELHO], borderWidth: 2, borderColor: '#fff' }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } }, cutout: '55%' }
+  });
+
+  // 7. Motivos inatividade (milhões)
+  new Chart(document.getElementById('cMotivos'), {
+    type: 'bar',
+    data: {
+      labels: ['Cuidados', 'Estudo', 'Saúde', 'Idade', 'Opção Pessoal', 'Outros'],
+      datasets: [
+        { label: '2015–2019', data: [12.9,10.4,8.8,13.0,5.7,2.6], backgroundColor: AZUL },
+        { label: '2020–2021', data: [12.0,9.7,9.7,15.0,6.0,4.2],  backgroundColor: LARANJA },
+        { label: '2022–2025', data: [12.7,9.9,10.8,15.6,6.0,3.4], backgroundColor: VERDE },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: { x: eixo, y: { ...eixo, ticks: { callback: v => v + 'M' } } }
+    }
+  });
+
+  // 8. Motivos inatividade (%)
+  new Chart(document.getElementById('cMotivosPct'), {
+    type: 'bar',
+    data: {
+      labels: ['Cuidados', 'Estudo', 'Saúde', 'Idade', 'Opção Pessoal', 'Outros'],
+      datasets: [
+        { label: '2015–2019', data: [24.1,19.4,16.5,24.4,10.6,5.0], backgroundColor: AZUL },
+        { label: '2020–2021', data: [21.2,17.2,17.1,26.5,10.5,7.4], backgroundColor: LARANJA },
+        { label: '2022–2025', data: [21.7,17.0,18.5,26.7,10.3,5.8], backgroundColor: VERDE },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: { x: eixo, y: { ...eixo, ticks: { callback: v => v + '%' } } }
+    }
+  });
+
+  // 9. Bolsa Família — famílias
+  new Chart(document.getElementById('cBolsaFamilias'), {
+    type: 'bar',
+    data: {
+      labels: ['2004','2006','2008','2010','2012','2014','2016','2018','2019','2020','2021','2022','2023','2024','2025'],
+      datasets: [{
+        label: 'Famílias (M)',
+        data: [3.6,10.9,10.6,12.7,13.5,14.0,13.5,14.1,13.7,20.2,14.3,18.0,21.6,20.9,19.0],
+        backgroundColor: (ctx) => ctx.dataIndex >= 9 ? LARANJA : AZUL
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: eixo, y: { ...eixo, ticks: { callback: v => v + 'M' } } }
+    }
+  });
+
+
+  // =============================================
+  // BACK4APP — CRUD de Anotações
+  // =============================================
+  const B4A_URL    = 'https://parseapi.back4app.com/classes/Anotacao';
+  const B4A_HEADERS = {
+    'Content-Type':           'application/json',
+    'X-Parse-Application-Id': 'CJUYNFJ3njPJ2DxUXaBcacrg8zkVcF0EYvS6arfA',
+    'X-Parse-REST-API-Key':   'ZauHAXMm4acOgh5zi6JVTg7QmRZDWdrKsIlY5jlQ'
+  };
+
+  function setStatus(msg, cor) {
+    const el = document.getElementById('anot-status');
+    el.textContent = msg;
+    el.style.color = cor || '#2e8b57';
+    if (msg) setTimeout(() => el.textContent = '', 3000);
+  }
+
+  async function carregarAnotacoes() {
+    try {
+      const res  = await fetch(B4A_URL + '?order=-createdAt', { headers: B4A_HEADERS });
+      const data = await res.json();
+      renderLista(data.results || []);
+    } catch (e) {
+      document.getElementById('anot-lista').innerHTML =
+        '<div class="anot-vazio" style="color:#c0392b">Erro ao carregar anotações.</div>';
+    }
+  }
+
+  function renderLista(lista) {
+    const container = document.getElementById('anot-lista');
+    if (!lista.length) {
+      container.innerHTML = '<div class="anot-vazio">Nenhuma anotação ainda. Crie a primeira acima!</div>';
+      return;
+    }
+    container.innerHTML = lista.map(a => `
+      <div class="anot-item" id="item-${a.objectId}">
+        <div class="anot-item-conteudo">
+          <div class="anot-item-titulo">${escHtml(a.titulo)}</div>
+          <div class="anot-item-texto">${escHtml(a.texto)}</div>
+        </div>
+        <div class="anot-item-acoes">
+          <button class="btn-editar"  onclick="editarAnotacao('${a.objectId}','${escAttr(a.titulo)}','${escAttr(a.texto)}')">✏️ Editar</button>
+          <button class="btn-deletar" onclick="deletarAnotacao('${a.objectId}')">🗑️ Excluir</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  async function salvarAnotacao() {
+    const id     = document.getElementById('anot-id').value;
+    const titulo = document.getElementById('anot-titulo').value.trim();
+    const texto  = document.getElementById('anot-texto').value.trim();
+
+    if (!titulo) { setStatus('Preencha o título.', '#c0392b'); return; }
+    if (!texto)  { setStatus('Preencha o texto.',  '#c0392b'); return; }
+
+    setStatus('Salvando...', '#888');
+    try {
+      const url    = id ? `${B4A_URL}/${id}` : B4A_URL;
+      const method = id ? 'PUT' : 'POST';
+      const res    = await fetch(url, {
+        method,
+        headers: B4A_HEADERS,
+        body: JSON.stringify({ titulo, texto })
+      });
+      if (!res.ok) throw new Error();
+      setStatus(id ? 'Anotação atualizada!' : 'Anotação criada!');
+      cancelarEdicao();
+      carregarAnotacoes();
+    } catch (e) {
+      setStatus('Erro ao salvar. Tente novamente.', '#c0392b');
+    }
+  }
+
+  async function deletarAnotacao(id) {
+    if (!confirm('Excluir esta anotação?')) return;
+    try {
+      await fetch(`${B4A_URL}/${id}`, { method: 'DELETE', headers: B4A_HEADERS });
+      setStatus('Anotação excluída.');
+      carregarAnotacoes();
+    } catch (e) {
+      setStatus('Erro ao excluir.', '#c0392b');
+    }
+  }
+
+  function editarAnotacao(id, titulo, texto) {
+    document.getElementById('anot-id').value              = id;
+    document.getElementById('anot-titulo').value          = titulo;
+    document.getElementById('anot-texto').value           = texto;
+    document.getElementById('anot-form-titulo-label').textContent = 'Editar Anotação';
+    document.getElementById('btn-cancelar-edicao').style.display  = 'inline-block';
+    document.getElementById('anot-titulo').focus();
+  }
+
+  function cancelarEdicao() {
+    document.getElementById('anot-id').value              = '';
+    document.getElementById('anot-titulo').value          = '';
+    document.getElementById('anot-texto').value           = '';
+    document.getElementById('anot-form-titulo-label').textContent = 'Nova Anotação';
+    document.getElementById('btn-cancelar-edicao').style.display  = 'none';
+  }
+
+  function escHtml(s)  { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function escAttr(s)  { return (s||'').replace(/'/g,'&#39;').replace(/\n/g,'\\n'); }
+
+  // Sobrescreve trocarAba para carregar anotações ao clicar na aba
+  const _trocarAba = trocarAba;
+  trocarAba = function(e, id) {
+    _trocarAba(e, id);
+    if (id === 'anotacoes') carregarAnotacoes();
+  };
+</script>
+</body>
+</html>
